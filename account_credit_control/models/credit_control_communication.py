@@ -175,6 +175,12 @@ class CreditControlCommunication(models.Model):
         comms._onchange_partner_id()
         return comms
 
+    @api.model
+    def _get_line_balance_due(self, line):
+        """Open amount of a credit control line, overridable by modules
+        adding amounts on top of it (e.g. dunning fees)."""
+        return line.balance_due
+
     def _get_credit_control_communication_table(self):
         th_style = "padding: 5px; border: 1px solid black;"
         tr_content = "<th style='%s'>%s</th>" % (th_style, _("Invoice number"))
@@ -188,6 +194,7 @@ class CreditControlCommunication(models.Model):
         table_content = "<br/><h3>%s</h3>" % _("Invoices summary")
         table_content += "<table style='%s'><tr>%s</tr>" % (table_style, tr_content)
         for line in self.credit_control_line_ids:
+            currency = line.currency_id or line.company_id.currency_id
             tr_content = "<td style='%s'>%s</td>" % (th_style, line.invoice_id.name)
             tr_content += "<td style='%s'>%s</td>" % (
                 th_style,
@@ -203,11 +210,11 @@ class CreditControlCommunication(models.Model):
             )
             tr_content += "<td style='%s'>%s</td>" % (
                 th_style,
-                format_amount(self.env, line.invoice_id.amount_total, line.currency_id),
+                format_amount(self.env, line.amount_due, currency),
             )
             tr_content += "<td style='%s'>%s</td>" % (
                 th_style,
-                format_amount(self.env, line.amount_due, line.currency_id),
+                format_amount(self.env, self._get_line_balance_due(line), currency),
             )
             table_content += "<tr>%s</tr>" % tr_content
         table_content += "</table>"
